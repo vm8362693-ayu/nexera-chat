@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Nexera V4</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+background:#0f172a;
+color:white;
+text-align:center;
+}
+
+#chat{
+width:90%;
+max-width:500px;
+margin:auto;
+}
+
+#messages{
+height:350px;
+overflow-y:auto;
+background:#020617;
+padding:10px;
+margin-bottom:10px;
+border-radius:10px;
+}
+
+.msg{
+background:#1e293b;
+padding:8px;
+margin:5px;
+border-radius:8px;
+text-align:left;
+}
+
+.time{
+font-size:10px;
+color:gray;
+}
+
+input{
+padding:10px;
+width:60%;
+}
+
+button{
+padding:10px;
+background:#22c55e;
+border:none;
+color:white;
+}
+
+#typing{
+color:gray;
+font-size:12px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>🚀 Nexera V4 Ultra</h2>
+
+<div>🟢 Online: <span id="online">0</span></div>
+
+<div id="chat">
+
+<div id="messages"></div>
+
+<div id="typing"></div>
+
+<input id="input" placeholder="Type message">
+<button onclick="send()">Send</button>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+const socket = io();
+
+let username = prompt("Enter your username");
+
+socket.emit("join", username);
+
+const input = document.getElementById("input");
+const messages = document.getElementById("messages");
+const typing = document.getElementById("typing");
+
+function time(){
+
+let d = new Date();
+
+return d.getHours()+":"+d.getMinutes();
+
+}
+
+function send(){
+
+if(input.value.trim()!=""){
+
+socket.emit("chat",{
+user:username,
+message:input.value,
+time:time()
+});
+
+input.value="";
+
+}
+
+}
+
+socket.on("chat",(data)=>{
+
+let div=document.createElement("div");
+
+div.className="msg";
+
+div.innerHTML="<b>"+data.user+"</b>: "+data.message+
+"<div class='time'>"+(data.time || "")+"</div>";
+
+messages.appendChild(div);
+
+messages.scrollTop=messages.scrollHeight;
+
+});
+
+socket.on("online",(count)=>{
+document.getElementById("online").textContent=count;
+});
+
+input.addEventListener("input",()=>{
+
+socket.emit("typing",username);
+
+setTimeout(()=>{
+socket.emit("stop typing");
+},1000);
+
+});
+
+socket.on("typing",(user)=>{
+typing.textContent=user+" is typing...";
+});
+
+socket.on("stop typing",()=>{
+typing.textContent="";
+});
+
+</script>
+
+</body>
+</html>
+
