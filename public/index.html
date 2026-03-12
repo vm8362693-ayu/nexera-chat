@@ -1,161 +1,78 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-
-<title>Nexera V4</title>
-
-<style>
-
-body{
-font-family:sans-serif;
-background:#0f172a;
-color:white;
-text-align:center;
-}
-
-#chat{
-width:90%;
-max-width:500px;
-margin:auto;
-}
-
-#messages{
-height:350px;
-overflow-y:auto;
-background:#020617;
-padding:10px;
-margin-bottom:10px;
-border-radius:10px;
-}
-
-.msg{
-background:#1e293b;
-padding:8px;
-margin:5px;
-border-radius:8px;
-text-align:left;
-}
-
-.time{
-font-size:10px;
-color:gray;
-}
-
-input{
-padding:10px;
-width:60%;
-}
-
-button{
-padding:10px;
-background:#22c55e;
-border:none;
-color:white;
-}
-
-#typing{
-color:gray;
-font-size:12px;
-}
-
-</style>
-
+  <meta charset="UTF-8">
+  <title>Nexera Chat</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
+  <h1>Nexera Chat</h1>
+<button id="installBtn" style="display:none;">Install Nexera App</button>
 
-<h2>🚀 Nexera V4 Ultra</h2>
+  <div id="chatBox" style="height:400px;overflow-y:scroll;border:1px solid #ccc;"></div>
 
-<div>🟢 Online: <span id="online">0</span></div>
+  <input id="msgInput" type="text" placeholder="Type your message">
+  <button id="sendBtn">Send</button>
+  <button onclick="openAdmin()">Admin Dashboard</button>
 
-<div id="chat">
+  <iframe id="adminFrame" src="/admin.html" style="width:100%; height:300px; display:none; border:none;"></iframe>
 
-<div id="messages"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let username = prompt("Enter your name:");
 
-<div id="typing"></div>
-
-<input id="input" placeholder="Type message">
-<button onclick="send()">Send</button>
-
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-
-<script>
-
-const socket = io();
-
-let username = prompt("Enter your username");
+if(!username){
+  username = "Guest";
+}
 
 socket.emit("join", username);
 
-const input = document.getElementById("input");
-const messages = document.getElementById("messages");
-const typing = document.getElementById("typing");
+    document.getElementById("sendBtn").addEventListener("click", () => {
+      const msg = document.getElementById("msgInput").value;
+      socket.emit("chat message", msg);
+      document.getElementById("msgInput").value = "";
+    });
 
-function time(){
+    socket.on("chat message", (data) => {
+      const chatBox = document.getElementById("chatBox");
+      chatBox.innerHTML += `<p><b>${data.user}:</b> ${data.message}</p>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
 
-let d = new Date();
+    socket.on("blocked", (msg) => {
+      alert(msg);
+    });
 
-return d.getHours()+":"+d.getMinutes();
-
+    function openAdmin() {
+      document.getElementById('adminFrame').style.display = 'block';
+    }
+  </script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js")
+    .then(() => console.log("Service Worker Registered"))
+    .catch(err => console.log("Service Worker Failed", err));
 }
-
-function send(){
-
-if(input.value.trim()!=""){
-
-socket.emit("chat",{
-user:username,
-message:input.value,
-time:time()
-});
-
-input.value="";
-
-}
-
-}
-
-socket.on("chat",(data)=>{
-
-let div=document.createElement("div");
-
-div.className="msg";
-
-div.innerHTML="<b>"+data.user+"</b>: "+data.message+
-"<div class='time'>"+(data.time || "")+"</div>";
-
-messages.appendChild(div);
-
-messages.scrollTop=messages.scrollHeight;
-
-});
-
-socket.on("online",(count)=>{
-document.getElementById("online").textContent=count;
-});
-
-input.addEventListener("input",()=>{
-
-socket.emit("typing",username);
-
-setTimeout(()=>{
-socket.emit("stop typing");
-},1000);
-
-});
-
-socket.on("typing",(user)=>{
-typing.textContent=user+" is typing...";
-});
-
-socket.on("stop typing",()=>{
-typing.textContent="";
-});
-
 </script>
+<script>
+let deferredPrompt;
 
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById("installBtn").style.display = "block";
+});
+
+document.getElementById("installBtn").addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log("User response:", outcome);
+    deferredPrompt = null;
+  }
+});
+</script>
 </body>
 </html>
-
